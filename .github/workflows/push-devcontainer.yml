@@ -1,0 +1,29 @@
+name: Dev Container CI
+
+on:
+  push:
+    paths:
+      - ".devcontainer/Dockerfile"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get commit hash
+        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Extract repository name
+        run: echo "REPO_NAME=$(echo ${{ github.repository }} | sed -e 's/.*\///g')" >> $GITHUB_ENV
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u dockerteamcore --password-stdin
+
+      - name: Build Docker image
+        run: docker build -t dockerteamcore/${{ env.REPO_NAME }}:latest -t dockerteamcore/${{ env.REPO_NAME }}:${{ env.COMMIT_HASH }} -f ./.devcontainer/Dockerfile .
+
+      - name: Push Docker image
+        run: docker push --all-tags dockerteamcore/${{ env.REPO_NAME }}
